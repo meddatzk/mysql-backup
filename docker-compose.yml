@@ -10,3 +10,7 @@ services:
       - ./config:/app/config
       - ./backups:/app/backups
     restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN # Erforderlich für das Mounten von SMB-Shares
+    security_opt:
+      - apparmor:unconfined # Deaktiviert AppArmor-Einschränkungen
