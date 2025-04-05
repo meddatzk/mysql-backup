@@ -49,15 +49,11 @@ mkdir -p "$BACKUP_DIR"
 # Führe MySQL-Backup durch
 log "Starte Backup der Datenbank $MYSQL_DATABASE auf $MYSQL_HOST..."
 
-if [ -z "$MYSQL_PASSWORD" ]; then
-    # Ohne Passwort
-    mysqldump --host="$MYSQL_HOST" --port="$MYSQL_PORT" --user="$MYSQL_USER" \
-        --single-transaction --quick --lock-tables=false "$MYSQL_DATABASE" | gzip > "$BACKUP_DIR/$BACKUP_FILE"
-else
-    # Mit Passwort
-    mysqldump --host="$MYSQL_HOST" --port="$MYSQL_PORT" --user="$MYSQL_USER" --password="$MYSQL_PASSWORD" \
-        --single-transaction --quick --lock-tables=false "$MYSQL_DATABASE" | gzip > "$BACKUP_DIR/$BACKUP_FILE"
-fi
+# Führe MySQL-Backup durch
+log "Verwende lokalen MySQL-Client für das Backup..."
+mysqldump -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" \
+    --single-transaction --quick --lock-tables=false \
+    "$MYSQL_DATABASE" | gzip > "$BACKUP_DIR/$BACKUP_FILE"
 
 # Prüfe, ob das Backup erfolgreich war
 if [ $? -eq 0 ]; then
