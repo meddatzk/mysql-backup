@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Startseite - MySQL Backup Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">
+            <i class="bi bi-database-fill"></i> MySQL Backup Manager
+        </h1>
+        <p class="lead">
+            Willkommen beim MySQL Backup Manager. Dieses Tool ermöglicht es Ihnen, MySQL-Datenbanken zu sichern und die
+            Backups zu verwalten.
+        </p>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-6 col-lg-3">
+        <a href="{{ url_for('config') }}" class="text-decoration-none">
+            <div class="dashboard-tile tile-primary">
+                <i class="bi bi-gear-fill"></i>
+                <h3>Konfiguration</h3>
+                <p>MySQL-Verbindung und Backup-Einstellungen konfigurieren</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a href="{{ url_for('scheduler') }}" class="text-decoration-none">
+            <div class="dashboard-tile tile-info">
+                <i class="bi bi-calendar-event"></i>
+                <h3>Zeitplan</h3>
+                <p>Automatische Backup-Zeitpläne einrichten</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a href="{{ url_for('backups') }}" class="text-decoration-none">
+            <div class="dashboard-tile tile-success">
+                <i class="bi bi-archive-fill"></i>
+                <h3>Backups</h3>
+                <p>Vorhandene Backups anzeigen und verwalten</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <form action="{{ url_for('trigger_backup') }}" method="post" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn p-0 w-100 h-100 border-0">
+                <div class="dashboard-tile tile-warning">
+                    <i class="bi bi-play-fill"></i>
+                    <h3>Backup starten</h3>
+                    <p>Manuelles Backup jetzt ausführen</p>
+                </div>
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-info-circle"></i> Über MySQL Backup Manager
+            </div>
+            <div class="card-body">
+                <p>
+                    Der MySQL Backup Manager ist ein Tool zur einfachen Sicherung von MySQL-Datenbanken.
+                    Es bietet folgende Funktionen:
+                </p>
+                <ul>
+                    <li>Konfiguration der MySQL-Datenbankverbindung</li>
+                    <li>Backup auf lokalen Speicher oder SMB-Netzwerkfreigaben</li>
+                    <li>Flexible Zeitplanung für automatische Backups</li>
+                    <li>Einstellung der Aufbewahrungsdauer für Backups</li>
+                    <li>Manuelle Ausführung von Backups bei Bedarf</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-lightbulb"></i> Erste Schritte
+            </div>
+            <div class="card-body">
+                <p>Um mit dem MySQL Backup Manager zu beginnen, folgen Sie diesen Schritten:</p>
+                <ol>
+                    <li>Gehen Sie zur <a href="{{ url_for('config') }}">Konfiguration</a> und richten Sie die
+                        MySQL-Verbindung ein.</li>
+                    <li>Konfigurieren Sie optional einen SMB-Share als Backup-Ziel.</li>
+                    <li>Legen Sie im <a href="{{ url_for('scheduler') }}">Zeitplan</a> fest, wann automatische Backups
+                        ausgeführt werden sollen.</li>
+                    <li>Führen Sie ein erstes manuelles Backup durch, um die Konfiguration zu testen.</li>
+                    <li>Überprüfen Sie die erstellten Backups auf der <a
+                            href="{{ url_for('backups') }}">Backups</a>-Seite.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

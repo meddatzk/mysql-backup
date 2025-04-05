@@ -1,0 +1,21 @@
+# MySQL-Backup-Konfiguration
+# Kopiere diese Datei nach backup.conf und passe die Werte an
+
+# MySQL-Verbindungsdaten
+MYSQL_HOST="localhost"
+MYSQL_PORT="3306"
+MYSQL_USER="root"
+MYSQL_PASSWORD=""
+MYSQL_DATABASE=""
+
+# Backup-Einstellungen
+BACKUP_DIR="/app/backups"
+BACKUP_RETENTION="7"  # Aufbewahrungsdauer in Tagen, 0 = unbegrenzt
+
+# SMB-Share-Einstellungen
+SMB_ENABLED="false"   # true oder false
+SMB_SHARE=""          # z.B. //server/share
+SMB_MOUNT="/mnt/backup"
+SMB_USER=""
+SMB_PASSWORD=""
+SMB_DOMAIN="WORKGROUP"

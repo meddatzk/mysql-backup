@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Zeitplan - MySQL Backup Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-calendar-event"></i> Backup-Zeitplan
+        </h1>
+        <p class="lead">
+            Hier können Sie den Zeitplan für automatische Backups konfigurieren.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-clock"></i> Zeitplan-Einstellungen
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('scheduler') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row mb-4">
+                        <div class="col-12 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if
+                                    config.enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="enabled">Automatische Backups aktivieren</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label for="schedule" class="form-label">Backup-Häufigkeit</label>
+                            <select class="form-select" id="schedule" name="schedule">
+                                <option value="hourly" {% if config.schedule=='hourly' %}selected{% endif %}>Stündlich
+                                </option>
+                                <option value="daily" {% if config.schedule=='daily' %}selected{% endif %}>Täglich
+                                </option>
+                                <option value="weekly" {% if config.schedule=='weekly' %}selected{% endif %}>Wöchentlich
+                                </option>
+                                <option value="monthly" {% if config.schedule=='monthly' %}selected{% endif %}>Monatlich
+                                </option>
+                            </select>
+                            <div class="form-text">Wie oft sollen Backups erstellt werden?</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="time" class="form-label">Uhrzeit</label>
+                            <input type="time" class="form-control" id="time" name="time" value="{{ config.time }}">
+                            <div class="form-text">Zu welcher Uhrzeit sollen die Backups erstellt werden?</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 weekly-option">
+                            <label for="day_of_week" class="form-label">Wochentag</label>
+                            <select class="form-select" id="day_of_week" name="day_of_week">
+                                <option value="0" {% if config.day_of_week=='0' %}selected{% endif %}>Sonntag</option>
+                                <option value="1" {% if config.day_of_week=='1' %}selected{% endif %}>Montag</option>
+                                <option value="2" {% if config.day_of_week=='2' %}selected{% endif %}>Dienstag</option>
+                                <option value="3" {% if config.day_of_week=='3' %}selected{% endif %}>Mittwoch</option>
+                                <option value="4" {% if config.day_of_week=='4' %}selected{% endif %}>Donnerstag
+                                </option>
+                                <option value="5" {% if config.day_of_week=='5' %}selected{% endif %}>Freitag</option>
+                                <option value="6" {% if config.day_of_week=='6' %}selected{% endif %}>Samstag</option>
+                            </select>
+                            <div class="form-text">An welchem Wochentag sollen die Backups erstellt werden?</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3 monthly-option">
+                            <label for="day_of_month" class="form-label">Tag des Monats</label>
+                            <select class="form-select" id="day_of_month" name="day_of_month">
+                                {% for day in range(1, 32) %}
+                                <option value="{{ day }}" {% if config.day_of_month==day|string %}selected{% endif %}>{{
+                                    day }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">An welchem Tag des Monats sollen die Backups erstellt werden?</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Zeitplan speichern
+                            </button>
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Abbrechen
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-info-circle"></i> Hinweise zum Backup-Zeitplan
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>Stündlich:</strong> Das Backup wird jede Stunde zur angegebenen Minute ausgeführt.</li>
+                    <li><strong>Täglich:</strong> Das Backup wird jeden Tag zur angegebenen Uhrzeit ausgeführt.</li>
+                    <li><strong>Wöchentlich:</strong> Das Backup wird einmal pro Woche am angegebenen Wochentag zur
+                        angegebenen Uhrzeit ausgeführt.</li>
+                    <li><strong>Monatlich:</strong> Das Backup wird einmal pro Monat am angegebenen Tag zur angegebenen
+                        Uhrzeit ausgeführt.</li>
+                </ul>
+                <p class="mb-0">
+                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                    Wenn der angegebene Tag in einem Monat nicht existiert (z.B. 31. Februar), wird das Backup am
+                    letzten Tag des Monats ausgeführt.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const scheduleSelect = document.getElementById('schedule');
+        const weeklyOption = document.querySelector('.weekly-option');
+        const monthlyOption = document.querySelector('.monthly-option');
+        const enabledCheckbox = document.getElementById('enabled');
+        const allFields = document.querySelectorAll('select, input[type="time"]');
+
+        function updateScheduleOptions() {
+            const scheduleValue = scheduleSelect.value;
+
+            // Zeige/verstecke Wochentag-Option
+            if (scheduleValue === 'weekly') {
+                weeklyOption.style.display = 'block';
+            } else {
+                weeklyOption.style.display = 'none';
+            }
+
+            // Zeige/verstecke Tag des Monats-Option
+            if (scheduleValue === 'monthly') {
+                monthlyOption.style.display = 'block';
+            } else {
+                monthlyOption.style.display = 'none';
+            }
+        }
+
+        function toggleFields() {
+            const isEnabled = enabledCheckbox.checked;
+
+            allFields.forEach(field => {
+                if (field !== enabledCheckbox) {
+                    field.disabled = !isEnabled;
+                    field.parentElement.style.opacity = isEnabled ? '1' : '0.5';
+                }
+            });
+        }
+
+        // Initial ausführen
+        updateScheduleOptions();
+        toggleFields();
+
+        // Bei Änderung ausführen
+        scheduleSelect.addEventListener('change', updateScheduleOptions);
+        enabledCheckbox.addEventListener('change', toggleFields);
+    });
+</script>
+{% endblock %}
