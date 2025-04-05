@@ -42,6 +42,28 @@ Konfigurieren Sie die Verbindung zu Ihrer MySQL-Datenbank über die Weboberfläc
 - **Passwort**: Passwort für die MySQL-Verbindung
 - **Datenbank**: Name der zu sichernden Datenbank
 
+#### Wichtig: MySQL 8.0 Kompatibilität
+
+Wenn Sie MySQL 8.0 oder höher verwenden, müssen Sie den Benutzer so konfigurieren, dass er das ältere Authentifizierungsplugin `mysql_native_password` verwendet. MySQL 8.0 verwendet standardmäßig das Plugin `caching_sha2_password`, das mit dem im Container verwendeten MariaDB-Client nicht kompatibel ist.
+
+Führen Sie den folgenden SQL-Befehl auf Ihrem MySQL-Server aus, um den Benutzer zu konfigurieren (ersetzen Sie 'username' und 'password' durch Ihre Werte):
+
+```sql
+ALTER USER 'username'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+```
+
+Beispiel für den Root-Benutzer:
+
+```sql
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+```
+
+Danach müssen Sie die Berechtigungen neu laden:
+
+```sql
+FLUSH PRIVILEGES;
+```
+
 ### Backup-Einstellungen
 
 - **Backup-Verzeichnis**: Verzeichnis, in dem die Backups gespeichert werden
@@ -82,6 +104,34 @@ Die Backups werden im SQL-Format erstellt und mit gzip komprimiert. Der Dateinam
 ```
 mysql_backup_[Datenbankname]_[Zeitstempel].sql.gz
 ```
+
+## Fehlerbehebung
+
+### Leere Backups (0 Bytes)
+
+Wenn Ihre Backups leer sind (0 Bytes oder 0.0 MB in der Weboberfläche), liegt das wahrscheinlich an einem Authentifizierungsproblem mit MySQL 8.0. MySQL 8.0 verwendet standardmäßig das Authentifizierungsplugin `caching_sha2_password`, das mit dem im Container verwendeten MariaDB-Client nicht kompatibel ist.
+
+**Lösung:**
+
+1. Ändern Sie den MySQL-Benutzer, um das ältere Authentifizierungsplugin `mysql_native_password` zu verwenden:
+
+   ```sql
+   ALTER USER 'username'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+   FLUSH PRIVILEGES;
+   ```
+
+2. Starten Sie ein neues Backup über die Weboberfläche.
+
+3. Überprüfen Sie, ob das Backup jetzt Daten enthält. Die Weboberfläche zeigt möglicherweise immer noch 0.0 MB an, aber die tatsächliche Dateigröße sollte größer sein.
+
+### Verbindungsprobleme zum MySQL-Server
+
+Wenn Sie Probleme haben, eine Verbindung zum MySQL-Server herzustellen:
+
+1. Stellen Sie sicher, dass der MySQL-Server läuft und von außen erreichbar ist.
+2. Überprüfen Sie, ob der Benutzer die richtigen Berechtigungen hat.
+3. Stellen Sie sicher, dass der Benutzer von der IP-Adresse des Containers aus zugreifen darf.
+4. Überprüfen Sie die Firewall-Einstellungen.
 
 ## Lizenz
 
