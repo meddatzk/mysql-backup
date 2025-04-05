@@ -1,0 +1,47 @@
+name: Semantic Versioning
+
+on:
+  workflow_dispatch:
+    # Dies erlaubt die manuelle Ausführung über die GitHub UI
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/exec
+
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release --branches main
+
+      - name: Get current version
+        id: version
+        run: |
+          VERSION=$(cat version.json | jq -r '.version')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Current version: $VERSION"
+
+      - name: Update version in files
+        run: |
+          echo "Updating version in files to $VERSION"
+          # Die version.json wird bereits durch semantic-release aktualisiert
+          # Der Footer liest die Version direkt aus der version.json
+          # Keine weiteren Änderungen notwendig
