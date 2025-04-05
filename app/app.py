@@ -164,6 +164,24 @@ def list_backups():
     backups.sort(key=lambda x: x['date'], reverse=True)
     return backups
 
+# Lösche ein Backup
+def delete_backup(filename):
+    config = load_backup_config()
+    backup_dir = config.get('BACKUP_DIR', '/app/backups')
+    file_path = os.path.join(backup_dir, filename)
+    
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        try:
+            os.remove(file_path)
+            logger.info(f"Backup {filename} gelöscht.")
+            return True
+        except Exception as e:
+            logger.error(f"Fehler beim Löschen des Backups {filename}: {e}")
+            return False
+    else:
+        logger.error(f"Backup {filename} nicht gefunden.")
+        return False
+
 # Routen
 @app.route('/')
 def index():
@@ -229,6 +247,27 @@ def trigger_backup():
         flash('Backup erfolgreich durchgeführt', 'success')
     else:
         flash(f'Backup fehlgeschlagen: {message}', 'danger')
+    return redirect(url_for('backups'))
+
+@app.route('/download_backup/<filename>')
+def download_backup(filename):
+    config = load_backup_config()
+    backup_dir = config.get('BACKUP_DIR', '/app/backups')
+    file_path = os.path.join(backup_dir, filename)
+    
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        from flask import send_file
+        return send_file(file_path, as_attachment=True)
+    else:
+        flash(f'Backup {filename} nicht gefunden.', 'danger')
+        return redirect(url_for('backups'))
+
+@app.route('/delete_backup/<filename>', methods=['POST'])
+def delete_backup_route(filename):
+    if delete_backup(filename):
+        flash(f'Backup {filename} erfolgreich gelöscht.', 'success')
+    else:
+        flash(f'Fehler beim Löschen des Backups {filename}.', 'danger')
     return redirect(url_for('backups'))
 
 # Stelle sicher, dass die Konfigurationsdateien existieren
