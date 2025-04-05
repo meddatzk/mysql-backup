@@ -14,13 +14,14 @@ RUN apk update && apk add --no-cache \
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
+# Erstelle Verzeichnisse
+RUN mkdir -p /app/backups /app/logs /app/config /app/scripts
+RUN chmod -R 755 /app
+
 # Kopiere Anwendungsdateien
 COPY app/ /app/
 COPY config/ /app/config/
 COPY scripts/ /app/scripts/
-
-# Erstelle Verzeichnisse
-RUN mkdir -p /app/backups /app/logs
 
 # Installiere Python-Abhängigkeiten
 COPY requirements.txt /app/
