@@ -270,6 +270,99 @@ def delete_backup_route(filename):
         flash(f'Fehler beim Löschen des Backups {filename}.', 'danger')
     return redirect(url_for('backups'))
 
+@app.route('/test_db_connection', methods=['POST'])
+def test_db_connection():
+    config = load_backup_config()
+    host = config.get('MYSQL_HOST', 'localhost')
+    port = config.get('MYSQL_PORT', '3306')
+    user = config.get('MYSQL_USER', 'root')
+    password = config.get('MYSQL_PASSWORD', '')
+    database = config.get('MYSQL_DATABASE', '')
+    
+    try:
+        import pymysql
+        connection = pymysql.connect(
+            host=host,
+            port=int(port),
+            user=user,
+            password=password,
+            database=database,
+            connect_timeout=5
+        )
+        connection.close()
+        flash(f'Datenbankverbindung zu {host}:{port}/{database} erfolgreich hergestellt.', 'success')
+    except Exception as e:
+        flash(f'Fehler bei der Datenbankverbindung: {str(e)}', 'danger')
+    
+    return redirect(url_for('config'))
+
+@app.route('/test_smb_connection', methods=['POST'])
+def test_smb_connection():
+    config = load_backup_config()
+    smb_enabled = config.get('SMB_ENABLED', 'false') == 'true'
+    smb_share = config.get('SMB_SHARE', '')
+    smb_mount = config.get('SMB_MOUNT', '/mnt/backup')
+    smb_user = config.get('SMB_USER', '')
+    smb_password = config.get('SMB_PASSWORD', '')
+    smb_domain = config.get('SMB_DOMAIN', 'WORKGROUP')
+    
+    if not smb_enabled:
+        flash('SMB-Share ist nicht aktiviert.', 'warning')
+        return redirect(url_for('config'))
+    
+    if not smb_share:
+        flash('SMB-Share-Pfad ist nicht angegeben.', 'danger')
+        return redirect(url_for('config'))
+    
+    # Erstelle Mount-Verzeichnis, falls es nicht existiert
+    os.makedirs(smb_mount, exist_ok=True)
+    
+    # Prüfe, ob der SMB-Server erreichbar ist
+    server = smb_share.split('/')[2]
+    try:
+        import subprocess
+        ping_result = subprocess.run(['ping', '-c', '1', server], capture_output=True, text=True)
+        if ping_result.returncode != 0:
+            flash(f'WARNUNG: SMB-Server {server} scheint nicht erreichbar zu sein. Ping fehlgeschlagen.', 'warning')
+    except Exception as e:
+        logger.error(f"Fehler beim Ping des SMB-Servers: {e}")
+    
+    # Versuche, den SMB-Share zu mounten
+    try:
+        mount_cmd = []
+        if smb_password:
+            mount_cmd = ['mount', '-t', 'cifs', smb_share, smb_mount, 
+                        '-o', f'username={smb_user},password={smb_password},domain={smb_domain},vers=3.0']
+        else:
+            mount_cmd = ['mount', '-t', 'cifs', smb_share, smb_mount, 
+                        '-o', f'username={smb_user},domain={smb_domain},vers=3.0']
+        
+        mount_result = subprocess.run(mount_cmd, capture_output=True, text=True)
+        
+        if mount_result.returncode == 0:
+            # Versuche, ein Testverzeichnis zu erstellen
+            test_dir = os.path.join(smb_mount, 'test_connection')
+            os.makedirs(test_dir, exist_ok=True)
+            os.rmdir(test_dir)
+            
+            # Unmounte den Share
+            subprocess.run(['umount', smb_mount], check=True)
+            
+            flash(f'SMB-Verbindung zu {smb_share} erfolgreich hergestellt.', 'success')
+        else:
+            error_msg = mount_result.stderr.strip()
+            flash(f'Fehler beim Mounten des SMB-Shares: {error_msg}', 'danger')
+            flash('Prüfen Sie Benutzername, Passwort, Domain und Share-Pfad.', 'warning')
+    except Exception as e:
+        flash(f'Fehler bei der SMB-Verbindung: {str(e)}', 'danger')
+        # Versuche, den Share zu unmounten, falls er gemountet wurde
+        try:
+            subprocess.run(['umount', smb_mount], capture_output=True)
+        except:
+            pass
+    
+    return redirect(url_for('config'))
+
 # Stelle sicher, dass die Konfigurationsdateien existieren
 ensure_config_files()
 

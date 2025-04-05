@@ -63,6 +63,17 @@
                                 value="{{ config.get('MYSQL_DATABASE', '') }}" required>
                             <div class="form-text">Name der zu sichernden Datenbank</div>
                         </div>
+
+                        <div class="col-12 mb-3">
+                            <form action="{{ url_for('test_db_connection') }}" method="post" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-info">
+                                    <i class="bi bi-check-circle"></i> Datenbankverbindung testen
+                                </button>
+                            </form>
+                            <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen Einstellungen
+                                (speichert nicht)</small>
+                        </div>
                     </div>
 
                     <div class="row mb-4">
@@ -129,6 +140,17 @@
                                 value="{{ config.get('SMB_DOMAIN', 'WORKGROUP') }}">
                             <div class="form-text">Domain für den SMB-Share (Standard: WORKGROUP)</div>
                         </div>
+
+                        <div class="col-12 mb-3">
+                            <form action="{{ url_for('test_smb_connection') }}" method="post" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-info" id="test_smb_btn">
+                                    <i class="bi bi-check-circle"></i> SMB-Verbindung testen
+                                </button>
+                            </form>
+                            <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen Einstellungen
+                                (speichert nicht)</small>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -154,13 +176,22 @@
     document.addEventListener('DOMContentLoaded', function () {
         const smbEnabled = document.getElementById('smb_enabled');
         const smbFields = document.querySelectorAll('#smb_share, #smb_mount, #smb_user, #smb_password, #smb_domain');
+        const testSmbBtn = document.getElementById('test_smb_btn');
 
         function toggleSmbFields() {
             const isEnabled = smbEnabled.checked;
+
+            // Felder deaktivieren/aktivieren
             smbFields.forEach(field => {
                 field.disabled = !isEnabled;
                 field.parentElement.style.opacity = isEnabled ? '1' : '0.5';
             });
+
+            // Test-Button deaktivieren/aktivieren
+            if (testSmbBtn) {
+                testSmbBtn.disabled = !isEnabled;
+                testSmbBtn.parentElement.parentElement.style.opacity = isEnabled ? '1' : '0.5';
+            }
         }
 
         // Initial ausführen
