@@ -272,12 +272,20 @@ def delete_backup_route(filename):
 
 @app.route('/test_db_connection', methods=['POST'])
 def test_db_connection():
-    config = load_backup_config()
-    host = config.get('MYSQL_HOST', 'localhost')
-    port = config.get('MYSQL_PORT', '3306')
-    user = config.get('MYSQL_USER', 'root')
-    password = config.get('MYSQL_PASSWORD', '')
-    database = config.get('MYSQL_DATABASE', '')
+    if request.is_json:
+        data = request.get_json()
+        host = data.get('mysql_host', 'localhost')
+        port = data.get('mysql_port', '3306')
+        user = data.get('mysql_user', 'root')
+        password = data.get('mysql_password', '')
+        database = data.get('mysql_database', '')
+    else:
+        config = load_backup_config()
+        host = config.get('MYSQL_HOST', 'localhost')
+        port = config.get('MYSQL_PORT', '3306')
+        user = config.get('MYSQL_USER', 'root')
+        password = config.get('MYSQL_PASSWORD', '')
+        database = config.get('MYSQL_DATABASE', '')
     
     try:
         import pymysql
@@ -290,40 +298,67 @@ def test_db_connection():
             connect_timeout=5
         )
         connection.close()
-        flash(f'Datenbankverbindung zu {host}:{port}/{database} erfolgreich hergestellt.', 'success')
+        message = f'Datenbankverbindung zu {host}:{port}/{database} erfolgreich hergestellt.'
+        
+        if request.is_json:
+            return jsonify({'success': True, 'message': message})
+        else:
+            flash(message, 'success')
+            return redirect(url_for('config'))
     except Exception as e:
-        flash(f'Fehler bei der Datenbankverbindung: {str(e)}', 'danger')
-    
-    return redirect(url_for('config'))
+        error_message = f'Fehler bei der Datenbankverbindung: {str(e)}'
+        
+        if request.is_json:
+            return jsonify({'success': False, 'message': error_message})
+        else:
+            flash(error_message, 'danger')
+            return redirect(url_for('config'))
 
 @app.route('/test_smb_connection', methods=['POST'])
 def test_smb_connection():
-    config = load_backup_config()
-    smb_enabled = config.get('SMB_ENABLED', 'false') == 'true'
-    smb_share = config.get('SMB_SHARE', '')
-    smb_mount = config.get('SMB_MOUNT', '/mnt/backup')
-    smb_user = config.get('SMB_USER', '')
-    smb_password = config.get('SMB_PASSWORD', '')
-    smb_domain = config.get('SMB_DOMAIN', 'WORKGROUP')
-    
-    if not smb_enabled:
-        flash('SMB-Share ist nicht aktiviert.', 'warning')
-        return redirect(url_for('config'))
+    if request.is_json:
+        data = request.get_json()
+        smb_share = data.get('smb_share', '')
+        smb_mount = data.get('smb_mount', '/mnt/backup')
+        smb_user = data.get('smb_user', '')
+        smb_password = data.get('smb_password', '')
+        smb_domain = data.get('smb_domain', 'WORKGROUP')
+    else:
+        config = load_backup_config()
+        smb_enabled = config.get('SMB_ENABLED', 'false') == 'true'
+        smb_share = config.get('SMB_SHARE', '')
+        smb_mount = config.get('SMB_MOUNT', '/mnt/backup')
+        smb_user = config.get('SMB_USER', '')
+        smb_password = config.get('SMB_PASSWORD', '')
+        smb_domain = config.get('SMB_DOMAIN', 'WORKGROUP')
+        
+        if not smb_enabled:
+            flash('SMB-Share ist nicht aktiviert.', 'warning')
+            return redirect(url_for('config'))
     
     if not smb_share:
-        flash('SMB-Share-Pfad ist nicht angegeben.', 'danger')
-        return redirect(url_for('config'))
+        message = 'SMB-Share-Pfad ist nicht angegeben.'
+        if request.is_json:
+            return jsonify({'success': False, 'message': message})
+        else:
+            flash(message, 'danger')
+            return redirect(url_for('config'))
     
     # Erstelle Mount-Verzeichnis, falls es nicht existiert
     os.makedirs(smb_mount, exist_ok=True)
     
     # Prüfe, ob der SMB-Server erreichbar ist
     server = smb_share.split('/')[2]
+    warnings = []
+    
     try:
         import subprocess
         ping_result = subprocess.run(['ping', '-c', '1', server], capture_output=True, text=True)
         if ping_result.returncode != 0:
-            flash(f'WARNUNG: SMB-Server {server} scheint nicht erreichbar zu sein. Ping fehlgeschlagen.', 'warning')
+            warning_msg = f'WARNUNG: SMB-Server {server} scheint nicht erreichbar zu sein. Ping fehlgeschlagen.'
+            warnings.append(warning_msg)
+            if not request.is_json:
+                flash(warning_msg, 'warning')
     except Exception as e:
         logger.error(f"Fehler beim Ping des SMB-Servers: {e}")
     
@@ -348,20 +383,49 @@ def test_smb_connection():
             # Unmounte den Share
             subprocess.run(['umount', smb_mount], check=True)
             
-            flash(f'SMB-Verbindung zu {smb_share} erfolgreich hergestellt.', 'success')
+            success_msg = f'SMB-Verbindung zu {smb_share} erfolgreich hergestellt.'
+            
+            if request.is_json:
+                return jsonify({
+                    'success': True, 
+                    'message': success_msg,
+                    'warnings': warnings
+                })
+            else:
+                flash(success_msg, 'success')
+                return redirect(url_for('config'))
         else:
             error_msg = mount_result.stderr.strip()
-            flash(f'Fehler beim Mounten des SMB-Shares: {error_msg}', 'danger')
-            flash('Prüfen Sie Benutzername, Passwort, Domain und Share-Pfad.', 'warning')
+            warning_msg = 'Prüfen Sie Benutzername, Passwort, Domain und Share-Pfad.'
+            
+            if request.is_json:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Fehler beim Mounten des SMB-Shares: {error_msg}',
+                    'warnings': warnings + [warning_msg]
+                })
+            else:
+                flash(f'Fehler beim Mounten des SMB-Shares: {error_msg}', 'danger')
+                flash(warning_msg, 'warning')
+                return redirect(url_for('config'))
     except Exception as e:
-        flash(f'Fehler bei der SMB-Verbindung: {str(e)}', 'danger')
+        error_msg = f'Fehler bei der SMB-Verbindung: {str(e)}'
+        
         # Versuche, den Share zu unmounten, falls er gemountet wurde
         try:
             subprocess.run(['umount', smb_mount], capture_output=True)
         except:
             pass
-    
-    return redirect(url_for('config'))
+        
+        if request.is_json:
+            return jsonify({
+                'success': False, 
+                'message': error_msg,
+                'warnings': warnings
+            })
+        else:
+            flash(error_msg, 'danger')
+            return redirect(url_for('config'))
 
 # Stelle sicher, dass die Konfigurationsdateien existieren
 ensure_config_files()

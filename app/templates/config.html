@@ -65,12 +65,9 @@
                         </div>
 
                         <div class="col-12 mb-3">
-                            <form action="{{ url_for('test_db_connection') }}" method="post" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-info">
-                                    <i class="bi bi-check-circle"></i> Datenbankverbindung testen
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-info" id="test_db_btn">
+                                <i class="bi bi-check-circle"></i> Datenbankverbindung testen
+                            </button>
                             <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen Einstellungen
                                 (speichert nicht)</small>
                         </div>
@@ -142,12 +139,9 @@
                         </div>
 
                         <div class="col-12 mb-3">
-                            <form action="{{ url_for('test_smb_connection') }}" method="post" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-info" id="test_smb_btn">
-                                    <i class="bi bi-check-circle"></i> SMB-Verbindung testen
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-info" id="test_smb_btn">
+                                <i class="bi bi-check-circle"></i> SMB-Verbindung testen
+                            </button>
                             <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen Einstellungen
                                 (speichert nicht)</small>
                         </div>
@@ -177,6 +171,8 @@
         const smbEnabled = document.getElementById('smb_enabled');
         const smbFields = document.querySelectorAll('#smb_share, #smb_mount, #smb_user, #smb_password, #smb_domain');
         const testSmbBtn = document.getElementById('test_smb_btn');
+        const testDbBtn = document.getElementById('test_db_btn');
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
         function toggleSmbFields() {
             const isEnabled = smbEnabled.checked;
@@ -190,7 +186,7 @@
             // Test-Button deaktivieren/aktivieren
             if (testSmbBtn) {
                 testSmbBtn.disabled = !isEnabled;
-                testSmbBtn.parentElement.parentElement.style.opacity = isEnabled ? '1' : '0.5';
+                testSmbBtn.style.opacity = isEnabled ? '1' : '0.5';
             }
         }
 
@@ -199,6 +195,117 @@
 
         // Bei Änderung ausführen
         smbEnabled.addEventListener('change', toggleSmbFields);
+
+        // Datenbankverbindung testen
+        testDbBtn.addEventListener('click', function () {
+            // Daten sammeln
+            const data = {
+                mysql_host: document.getElementById('mysql_host').value,
+                mysql_port: document.getElementById('mysql_port').value,
+                mysql_user: document.getElementById('mysql_user').value,
+                mysql_password: document.getElementById('mysql_password').value,
+                mysql_database: document.getElementById('mysql_database').value,
+                csrf_token: csrfToken
+            };
+
+            // Button-Status ändern
+            testDbBtn.disabled = true;
+            testDbBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Teste Verbindung...';
+
+            // AJAX-Anfrage senden
+            fetch('{{ url_for("test_db_connection") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Ergebnis anzeigen
+                    if (data.success) {
+                        showAlert('success', data.message);
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'Fehler bei der Anfrage: ' + error);
+                })
+                .finally(() => {
+                    // Button-Status zurücksetzen
+                    testDbBtn.disabled = false;
+                    testDbBtn.innerHTML = '<i class="bi bi-check-circle"></i> Datenbankverbindung testen';
+                });
+        });
+
+        // SMB-Verbindung testen
+        testSmbBtn.addEventListener('click', function () {
+            if (!smbEnabled.checked) return;
+
+            // Daten sammeln
+            const data = {
+                smb_share: document.getElementById('smb_share').value,
+                smb_mount: document.getElementById('smb_mount').value,
+                smb_user: document.getElementById('smb_user').value,
+                smb_password: document.getElementById('smb_password').value,
+                smb_domain: document.getElementById('smb_domain').value,
+                csrf_token: csrfToken
+            };
+
+            // Button-Status ändern
+            testSmbBtn.disabled = true;
+            testSmbBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Teste Verbindung...';
+
+            // AJAX-Anfrage senden
+            fetch('{{ url_for("test_smb_connection") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Ergebnis anzeigen
+                    if (data.success) {
+                        showAlert('success', data.message);
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'Fehler bei der Anfrage: ' + error);
+                })
+                .finally(() => {
+                    // Button-Status zurücksetzen
+                    testSmbBtn.disabled = smbEnabled.checked ? false : true;
+                    testSmbBtn.innerHTML = '<i class="bi bi-check-circle"></i> SMB-Verbindung testen';
+                });
+        });
+
+        // Hilfsfunktion zum Anzeigen von Alerts
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+            `;
+
+            // Alert einfügen
+            const container = document.querySelector('.card-body');
+            container.insertBefore(alertDiv, container.firstChild);
+
+            // Alert nach 5 Sekunden automatisch ausblenden
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }, 5000);
+        }
     });
 </script>
 {% endblock %}
