@@ -27,6 +27,19 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'mysecretkey')
 csrf = CSRFProtect(app)
 
+# Lade Versionsinformation
+def load_version():
+    try:
+        with open('/app/version.json', 'r') as f:
+            version_data = json.load(f)
+            return version_data.get('version', 'unbekannt')
+    except Exception as e:
+        logger.error(f"Fehler beim Laden der Versionsinformation: {e}")
+        return 'unbekannt'
+
+# Globale Variable für die Version
+APP_VERSION = load_version()
+
 # Konfigurationsdateien
 CONFIG_DIR = '/app/config'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'backup.conf')
@@ -185,7 +198,7 @@ def delete_backup(filename):
 # Routen
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version=APP_VERSION)
 
 @app.route('/config', methods=['GET', 'POST'])
 def config():
@@ -213,7 +226,7 @@ def config():
     
     # Lade aktuelle Konfiguration
     config_data = load_backup_config()
-    return render_template('config.html', config=config_data)
+    return render_template('config.html', config=config_data, version=APP_VERSION)
 
 @app.route('/scheduler', methods=['GET', 'POST'])
 def scheduler():
@@ -233,12 +246,12 @@ def scheduler():
     
     # Lade aktuelle Scheduler-Konfiguration
     scheduler_data = load_scheduler_config()
-    return render_template('scheduler.html', config=scheduler_data)
+    return render_template('scheduler.html', config=scheduler_data, version=APP_VERSION)
 
 @app.route('/backups')
 def backups():
     backup_list = list_backups()
-    return render_template('backups.html', backups=backup_list)
+    return render_template('backups.html', backups=backup_list, version=APP_VERSION)
 
 @app.route('/run_backup', methods=['POST'])
 def trigger_backup():
@@ -429,6 +442,11 @@ def test_smb_connection():
 
 # Stelle sicher, dass die Konfigurationsdateien existieren
 ensure_config_files()
+
+# Kontext-Prozessor, um die Version in allen Templates verfügbar zu machen
+@app.context_processor
+def inject_version():
+    return dict(version=APP_VERSION)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=False)
