@@ -21,7 +21,7 @@
                 <i class="bi bi-sliders"></i> Backup-Einstellungen
             </div>
             <div class="card-body">
-                <form method="post" action="{{ url_for('config') }}">
+                <form method="post" action="{{ url_for('config') }}" id="configForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <!-- Allgemeine Einstellungen -->
@@ -385,5 +385,22 @@
     function addDatabase() {
         document.getElementById('addDatabaseForm').submit();
     }
+
+    // Stelle sicher, dass alle Formularfelder übermittelt werden, auch wenn sie in inaktiven Tabs sind
+    document.getElementById('configForm').addEventListener('submit', function (event) {
+        // Aktiviere alle Tabs temporär, damit alle Formularfelder übermittelt werden
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        tabPanes.forEach(pane => {
+            pane.classList.add('active');
+            pane.classList.add('show');
+        });
+
+        // Protokolliere alle Formularfelder für Debugging-Zwecke
+        console.log('Formularfelder vor dem Absenden:');
+        const formData = new FormData(this);
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+    });
 </script>
 {% endblock %}

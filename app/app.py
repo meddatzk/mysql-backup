@@ -276,6 +276,11 @@ def index():
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     if request.method == 'POST':
+        # Debug-Ausgabe aller Formularfelder
+        print("DEBUG - Formularfelder:", flush=True)
+        for key, value in request.form.items():
+            print(f"  {key}: {value}", flush=True)
+        
         # Allgemeine Konfiguration
         config_data = {
             'BACKUP_DIR': request.form.get('backup_dir', '/app/backups'),
@@ -299,9 +304,11 @@ def config():
                 parts = key.split('_')
                 if len(parts) >= 3:
                     db_ids.add(parts[1])
+                    print(f"DEBUG - Gefundene DB-ID: {parts[1]}", flush=True)
         
         # Sortiere die IDs numerisch
         db_ids = sorted(list(db_ids), key=int)
+        print(f"DEBUG - Sortierte DB-IDs: {db_ids}", flush=True)
         
         for db_id in db_ids:
             db_config = {
@@ -313,10 +320,14 @@ def config():
                 'password': request.form.get(f'db_{db_id}_password', ''),
                 'database': request.form.get(f'db_{db_id}_database', '')
             }
+            print(f"DEBUG - DB-Konfiguration für ID {db_id}: {db_config}", flush=True)
             databases.append(db_config)
+        
+        print(f"DEBUG - Anzahl der Datenbanken: {len(databases)}", flush=True)
         
         # Wenn keine Datenbanken übermittelt wurden, füge eine Standard-Datenbank hinzu
         if not databases:
+            print("DEBUG - Keine Datenbanken gefunden, füge Standard-Datenbank hinzu", flush=True)
             databases.append({
                 'id': '1',
                 'name': 'Datenbank 1',
@@ -327,7 +338,9 @@ def config():
                 'database': ''
             })
         
+        print("DEBUG - Speichere Konfiguration", flush=True)
         save_backup_config(config_data, databases)
+        print("DEBUG - Konfiguration gespeichert", flush=True)
         flash('Konfiguration gespeichert', 'success')
         return redirect(url_for('config'))
     
