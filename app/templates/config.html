@@ -74,13 +74,15 @@
                                 </li>
                             </ul>
 
+                            <!-- Verstecktes Feld für alle Datenbank-IDs -->
+                            <input type="hidden" name="all_db_ids"
+                                value="{{ databases|map(attribute='id')|join(',') }}">
+
                             <!-- Datenbank-Tab-Inhalte -->
                             <div class="tab-content border border-top-0 rounded-bottom p-3" id="databaseTabsContent">
                                 {% for db in databases %}
                                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
                                     id="db-content-{{ db.id }}" role="tabpanel" aria-labelledby="db-tab-{{ db.id }}">
-
-                                    <input type="hidden" name="db_id[]" value="{{ db.id }}">
 
                                     <div class="row mb-3">
                                         <div class="col-md-6 mb-3">

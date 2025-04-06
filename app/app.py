@@ -290,7 +290,8 @@ def config():
         
         # Datenbank-Konfigurationen
         databases = []
-        db_ids = request.form.getlist('db_id[]')
+        all_db_ids = request.form.get('all_db_ids', '')
+        db_ids = all_db_ids.split(',') if all_db_ids else []
         
         for db_id in db_ids:
             db_config = {
