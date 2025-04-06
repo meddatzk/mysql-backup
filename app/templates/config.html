@@ -54,6 +54,11 @@
                                 Jede Datenbank wird in eine separate Datei gesichert.
                             </p>
 
+                            <!-- Versteckte Felder für alle Datenbank-IDs -->
+                            {% for db in databases %}
+                            <input type="hidden" name="db_ids[]" value="{{ db.id }}">
+                            {% endfor %}
+
                             <!-- Datenbank-Tabs -->
                             <ul class="nav nav-tabs" id="databaseTabs" role="tablist">
                                 {% for db in databases %}
@@ -386,21 +391,5 @@
         document.getElementById('addDatabaseForm').submit();
     }
 
-    // Stelle sicher, dass alle Formularfelder übermittelt werden, auch wenn sie in inaktiven Tabs sind
-    document.getElementById('configForm').addEventListener('submit', function (event) {
-        // Aktiviere alle Tabs temporär, damit alle Formularfelder übermittelt werden
-        const tabPanes = document.querySelectorAll('.tab-pane');
-        tabPanes.forEach(pane => {
-            pane.classList.add('active');
-            pane.classList.add('show');
-        });
-
-        // Protokolliere alle Formularfelder für Debugging-Zwecke
-        console.log('Formularfelder vor dem Absenden:');
-        const formData = new FormData(this);
-        for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
-        }
-    });
 </script>
 {% endblock %}

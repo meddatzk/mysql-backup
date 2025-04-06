@@ -296,19 +296,9 @@ def config():
         # Datenbank-Konfigurationen
         databases = []
         
-        # Extrahiere Datenbank-IDs aus den Formularfeldern
-        db_ids = set()
-        for key in request.form.keys():
-            if key.startswith('db_') and '_name' in key:
-                # Format: db_[id]_name
-                parts = key.split('_')
-                if len(parts) >= 3:
-                    db_ids.add(parts[1])
-                    print(f"DEBUG - Gefundene DB-ID: {parts[1]}", flush=True)
-        
-        # Sortiere die IDs numerisch
-        db_ids = sorted(list(db_ids), key=int)
-        print(f"DEBUG - Sortierte DB-IDs: {db_ids}", flush=True)
+        # Hole Datenbank-IDs aus den versteckten Feldern
+        db_ids = request.form.getlist('db_ids[]')
+        print(f"DEBUG - Datenbank-IDs aus versteckten Feldern: {db_ids}", flush=True)
         
         for db_id in db_ids:
             db_config = {
