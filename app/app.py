@@ -290,7 +290,7 @@ def config():
         
         # Datenbank-Konfigurationen
         databases = []
-        db_ids = request.form.getlist('db_id')
+        db_ids = request.form.getlist('db_id[]')
         
         for db_id in db_ids:
             db_config = {

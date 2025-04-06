@@ -80,7 +80,7 @@
                                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
                                     id="db-content-{{ db.id }}" role="tabpanel" aria-labelledby="db-tab-{{ db.id }}">
 
-                                    <input type="hidden" name="db_id" value="{{ db.id }}">
+                                    <input type="hidden" name="db_id[]" value="{{ db.id }}">
 
                                     <div class="row mb-3">
                                         <div class="col-md-6 mb-3">
