@@ -74,10 +74,6 @@
                                 </li>
                             </ul>
 
-                            <!-- Verstecktes Feld für alle Datenbank-IDs -->
-                            <input type="hidden" name="all_db_ids"
-                                value="{{ databases|map(attribute='id')|join(',') }}">
-
                             <!-- Datenbank-Tab-Inhalte -->
                             <div class="tab-content border border-top-0 rounded-bottom p-3" id="databaseTabsContent">
                                 {% for db in databases %}

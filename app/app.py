@@ -290,8 +290,18 @@ def config():
         
         # Datenbank-Konfigurationen
         databases = []
-        all_db_ids = request.form.get('all_db_ids', '')
-        db_ids = all_db_ids.split(',') if all_db_ids else []
+        
+        # Extrahiere Datenbank-IDs aus den Formularfeldern
+        db_ids = set()
+        for key in request.form.keys():
+            if key.startswith('db_') and '_name' in key:
+                # Format: db_[id]_name
+                parts = key.split('_')
+                if len(parts) >= 3:
+                    db_ids.add(parts[1])
+        
+        # Sortiere die IDs numerisch
+        db_ids = sorted(list(db_ids), key=int)
         
         for db_id in db_ids:
             db_config = {
