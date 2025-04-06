@@ -1,14 +1,7 @@
 # MySQL-Backup-Konfiguration
 # Kopiere diese Datei nach backup.conf und passe die Werte an
 
-# MySQL-Verbindungsdaten
-MYSQL_HOST="localhost"
-MYSQL_PORT="3306"
-MYSQL_USER="root"
-MYSQL_PASSWORD=""
-MYSQL_DATABASE=""
-
-# Backup-Einstellungen
+# Allgemeine Backup-Einstellungen
 BACKUP_DIR="/app/backups"
 BACKUP_RETENTION="7"  # Aufbewahrungsdauer in Tagen, 0 = unbegrenzt
 
@@ -19,3 +12,21 @@ SMB_MOUNT="/mnt/backup"
 SMB_USER=""
 SMB_PASSWORD=""
 SMB_DOMAIN="WORKGROUP"
+
+# Datenbank-Konfigurationen
+# Format: DB_[ID]_[PARAMETER]="Wert"
+# Beispiel für die erste Datenbank (ID: 1)
+DB_1_NAME="Datenbank 1"  # Anzeigename der Datenbank
+DB_1_HOST="localhost"
+DB_1_PORT="3306"
+DB_1_USER="root"
+DB_1_PASSWORD=""
+DB_1_DATABASE=""
+
+# Beispiel für eine zweite Datenbank (ID: 2)
+# DB_2_NAME="Datenbank 2"
+# DB_2_HOST="localhost"
+# DB_2_PORT="3306"
+# DB_2_USER="root"
+# DB_2_PASSWORD=""
+# DB_2_DATABASE=""

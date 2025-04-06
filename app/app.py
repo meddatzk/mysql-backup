@@ -87,20 +87,69 @@ def load_backup_config():
     
     return config
 
+# Lade Datenbank-Konfigurationen
+def load_database_configs():
+    config = load_backup_config()
+    databases = []
+    db_ids = set()
+    
+    # Finde alle konfigurierten Datenbanken
+    for key in config.keys():
+        if key.startswith('DB_') and '_NAME' in key:
+            db_id = key.split('_')[1]
+            db_ids.add(db_id)
+    
+    # Sortiere die IDs numerisch
+    db_ids = sorted(db_ids, key=int)
+    
+    # Erstelle für jede Datenbank eine Konfiguration
+    for db_id in db_ids:
+        prefix = f'DB_{db_id}_'
+        db_config = {
+            'id': db_id,
+            'name': config.get(f'{prefix}NAME', f'Datenbank {db_id}'),
+            'host': config.get(f'{prefix}HOST', 'localhost'),
+            'port': config.get(f'{prefix}PORT', '3306'),
+            'user': config.get(f'{prefix}USER', 'root'),
+            'password': config.get(f'{prefix}PASSWORD', ''),
+            'database': config.get(f'{prefix}DATABASE', '')
+        }
+        databases.append(db_config)
+    
+    # Wenn keine Datenbanken konfiguriert sind, erstelle eine Standard-Datenbank
+    if not databases:
+        # Für Abwärtskompatibilität: Wenn alte Konfiguration vorhanden ist, verwende diese
+        if 'MYSQL_HOST' in config:
+            databases.append({
+                'id': '1',
+                'name': 'Datenbank 1',
+                'host': config.get('MYSQL_HOST', 'localhost'),
+                'port': config.get('MYSQL_PORT', '3306'),
+                'user': config.get('MYSQL_USER', 'root'),
+                'password': config.get('MYSQL_PASSWORD', ''),
+                'database': config.get('MYSQL_DATABASE', '')
+            })
+        else:
+            # Sonst erstelle eine leere Standard-Datenbank
+            databases.append({
+                'id': '1',
+                'name': 'Datenbank 1',
+                'host': 'localhost',
+                'port': '3306',
+                'user': 'root',
+                'password': '',
+                'database': ''
+            })
+    
+    return databases
+
 # Speichere die Backup-Konfiguration
-def save_backup_config(config):
+def save_backup_config(config, databases):
     with open(CONFIG_FILE, 'w') as f:
         f.write("# MySQL-Backup-Konfiguration\n")
         f.write("# Automatisch generiert durch die Weboberfläche\n\n")
         
-        f.write("# MySQL-Verbindungsdaten\n")
-        f.write(f'MYSQL_HOST="{config.get("MYSQL_HOST", "localhost")}"\n')
-        f.write(f'MYSQL_PORT="{config.get("MYSQL_PORT", "3306")}"\n')
-        f.write(f'MYSQL_USER="{config.get("MYSQL_USER", "root")}"\n')
-        f.write(f'MYSQL_PASSWORD="{config.get("MYSQL_PASSWORD", "")}"\n')
-        f.write(f'MYSQL_DATABASE="{config.get("MYSQL_DATABASE", "")}"\n\n')
-        
-        f.write("# Backup-Einstellungen\n")
+        f.write("# Allgemeine Backup-Einstellungen\n")
         f.write(f'BACKUP_DIR="{config.get("BACKUP_DIR", "/app/backups")}"\n')
         f.write(f'BACKUP_RETENTION="{config.get("BACKUP_RETENTION", "7")}"\n\n')
         
@@ -110,7 +159,18 @@ def save_backup_config(config):
         f.write(f'SMB_MOUNT="{config.get("SMB_MOUNT", "/mnt/backup")}"\n')
         f.write(f'SMB_USER="{config.get("SMB_USER", "")}"\n')
         f.write(f'SMB_PASSWORD="{config.get("SMB_PASSWORD", "")}"\n')
-        f.write(f'SMB_DOMAIN="{config.get("SMB_DOMAIN", "WORKGROUP")}"\n')
+        f.write(f'SMB_DOMAIN="{config.get("SMB_DOMAIN", "WORKGROUP")}"\n\n')
+        
+        f.write("# Datenbank-Konfigurationen\n")
+        for db in databases:
+            db_id = db.get('id', '1')
+            f.write(f'# Datenbank {db_id}\n')
+            f.write(f'DB_{db_id}_NAME="{db.get("name", f"Datenbank {db_id}")}"\n')
+            f.write(f'DB_{db_id}_HOST="{db.get("host", "localhost")}"\n')
+            f.write(f'DB_{db_id}_PORT="{db.get("port", "3306")}"\n')
+            f.write(f'DB_{db_id}_USER="{db.get("user", "root")}"\n')
+            f.write(f'DB_{db_id}_PASSWORD="{db.get("password", "")}"\n')
+            f.write(f'DB_{db_id}_DATABASE="{db.get("database", "")}"\n\n')
 
 # Lade die Scheduler-Konfiguration
 def load_scheduler_config():
@@ -131,17 +191,23 @@ def save_scheduler_config(config):
         json.dump(config, f, indent=4)
 
 # Führe ein manuelles Backup durch
-def run_backup():
+def run_backup(db_id=None):
     try:
-        result = subprocess.run([BACKUP_SCRIPT], capture_output=True, text=True)
+        if db_id:
+            # Backup einer einzelnen Datenbank
+            result = subprocess.run([BACKUP_SCRIPT, db_id], capture_output=True, text=True)
+        else:
+            # Backup mit Standard-Konfiguration (für Abwärtskompatibilität)
+            result = subprocess.run([BACKUP_SCRIPT], capture_output=True, text=True)
+            
         if result.returncode == 0:
-            logger.info("Backup erfolgreich durchgeführt.")
+            logger.info(f"Backup für Datenbank {db_id if db_id else 'Standard'} erfolgreich durchgeführt.")
             return True, result.stdout
         else:
-            logger.error(f"Backup fehlgeschlagen: {result.stderr}")
+            logger.error(f"Backup für Datenbank {db_id if db_id else 'Standard'} fehlgeschlagen: {result.stderr}")
             return False, result.stderr
     except Exception as e:
-        logger.exception("Fehler beim Ausführen des Backups")
+        logger.exception(f"Fehler beim Ausführen des Backups für Datenbank {db_id if db_id else 'Standard'}")
         return False, str(e)
 
 # Liste alle Backups auf
@@ -158,15 +224,22 @@ def list_backups():
                 file_size = file_stat.st_size
                 file_date = datetime.datetime.fromtimestamp(file_stat.st_mtime)
                 
-                # Extrahiere Datenbankname aus Dateinamen
+                # Extrahiere Datenbankname und ID aus Dateinamen
+                # Neues Format: mysql_backup_[DB_ID]_[DB_NAME]_[TIMESTAMP].sql.gz
                 parts = file.split('_')
-                if len(parts) >= 3:
+                if len(parts) >= 5:  # Neues Format mit DB_ID
+                    db_id = parts[2]
+                    db_name = parts[3]
+                elif len(parts) >= 3:  # Altes Format
+                    db_id = "1"  # Standard-ID für alte Backups
                     db_name = parts[2]
                 else:
+                    db_id = "1"
                     db_name = "unbekannt"
                 
                 backups.append({
                     'filename': file,
+                    'db_id': db_id,
                     'database': db_name,
                     'size': file_size,
                     'date': file_date,
@@ -203,13 +276,8 @@ def index():
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     if request.method == 'POST':
-        # Speichere Konfiguration
+        # Allgemeine Konfiguration
         config_data = {
-            'MYSQL_HOST': request.form.get('mysql_host', 'localhost'),
-            'MYSQL_PORT': request.form.get('mysql_port', '3306'),
-            'MYSQL_USER': request.form.get('mysql_user', 'root'),
-            'MYSQL_PASSWORD': request.form.get('mysql_password', ''),
-            'MYSQL_DATABASE': request.form.get('mysql_database', ''),
             'BACKUP_DIR': request.form.get('backup_dir', '/app/backups'),
             'BACKUP_RETENTION': request.form.get('backup_retention', '7'),
             'SMB_ENABLED': 'true' if request.form.get('smb_enabled') else 'false',
@@ -220,13 +288,42 @@ def config():
             'SMB_DOMAIN': request.form.get('smb_domain', 'WORKGROUP')
         }
         
-        save_backup_config(config_data)
+        # Datenbank-Konfigurationen
+        databases = []
+        db_ids = request.form.getlist('db_id')
+        
+        for db_id in db_ids:
+            db_config = {
+                'id': db_id,
+                'name': request.form.get(f'db_{db_id}_name', f'Datenbank {db_id}'),
+                'host': request.form.get(f'db_{db_id}_host', 'localhost'),
+                'port': request.form.get(f'db_{db_id}_port', '3306'),
+                'user': request.form.get(f'db_{db_id}_user', 'root'),
+                'password': request.form.get(f'db_{db_id}_password', ''),
+                'database': request.form.get(f'db_{db_id}_database', '')
+            }
+            databases.append(db_config)
+        
+        # Wenn keine Datenbanken übermittelt wurden, füge eine Standard-Datenbank hinzu
+        if not databases:
+            databases.append({
+                'id': '1',
+                'name': 'Datenbank 1',
+                'host': 'localhost',
+                'port': '3306',
+                'user': 'root',
+                'password': '',
+                'database': ''
+            })
+        
+        save_backup_config(config_data, databases)
         flash('Konfiguration gespeichert', 'success')
         return redirect(url_for('config'))
     
     # Lade aktuelle Konfiguration
     config_data = load_backup_config()
-    return render_template('config.html', config=config_data, version=APP_VERSION)
+    databases = load_database_configs()
+    return render_template('config.html', config=config_data, databases=databases, version=APP_VERSION)
 
 @app.route('/scheduler', methods=['GET', 'POST'])
 def scheduler():
@@ -251,15 +348,40 @@ def scheduler():
 @app.route('/backups')
 def backups():
     backup_list = list_backups()
-    return render_template('backups.html', backups=backup_list, version=APP_VERSION)
+    databases = load_database_configs()
+    # Erstelle ein Dictionary für schnellen Zugriff auf Datenbanknamen
+    db_names = {db['id']: db['name'] for db in databases}
+    return render_template('backups.html', backups=backup_list, databases=databases, db_names=db_names, version=APP_VERSION)
 
 @app.route('/run_backup', methods=['POST'])
 def trigger_backup():
-    success, message = run_backup()
-    if success:
-        flash('Backup erfolgreich durchgeführt', 'success')
+    db_id = request.form.get('db_id', 'all')
+    
+    if db_id == 'all':
+        # Backup aller Datenbanken
+        databases = load_database_configs()
+        all_success = True
+        messages = []
+        
+        for db in databases:
+            success, message = run_backup(db['id'])
+            if not success:
+                all_success = False
+                messages.append(f"Fehler bei Datenbank {db['name']}: {message}")
+        
+        if all_success:
+            flash('Alle Backups erfolgreich durchgeführt', 'success')
+        else:
+            for msg in messages:
+                flash(msg, 'danger')
     else:
-        flash(f'Backup fehlgeschlagen: {message}', 'danger')
+        # Backup einer einzelnen Datenbank
+        success, message = run_backup(db_id)
+        if success:
+            flash('Backup erfolgreich durchgeführt', 'success')
+        else:
+            flash(f'Backup fehlgeschlagen: {message}', 'danger')
+    
     return redirect(url_for('backups'))
 
 @app.route('/download_backup/<filename>')
@@ -293,12 +415,25 @@ def test_db_connection():
         password = data.get('mysql_password', '')
         database = data.get('mysql_database', '')
     else:
-        config = load_backup_config()
-        host = config.get('MYSQL_HOST', 'localhost')
-        port = config.get('MYSQL_PORT', '3306')
-        user = config.get('MYSQL_USER', 'root')
-        password = config.get('MYSQL_PASSWORD', '')
-        database = config.get('MYSQL_DATABASE', '')
+        # Für die neue Struktur mit mehreren Datenbanken
+        db_id = request.form.get('db_id', '1')
+        databases = load_database_configs()
+        db_config = next((db for db in databases if db['id'] == db_id), None)
+        
+        if db_config:
+            host = db_config.get('host', 'localhost')
+            port = db_config.get('port', '3306')
+            user = db_config.get('user', 'root')
+            password = db_config.get('password', '')
+            database = db_config.get('database', '')
+        else:
+            # Fallback auf alte Konfiguration
+            config = load_backup_config()
+            host = config.get('MYSQL_HOST', 'localhost')
+            port = config.get('MYSQL_PORT', '3306')
+            user = config.get('MYSQL_USER', 'root')
+            password = config.get('MYSQL_PASSWORD', '')
+            database = config.get('MYSQL_DATABASE', '')
     
     try:
         import pymysql
@@ -439,6 +574,76 @@ def test_smb_connection():
         else:
             flash(error_msg, 'danger')
             return redirect(url_for('config'))
+
+# API-Route zum Hinzufügen einer neuen Datenbank
+@app.route('/add_database', methods=['POST'])
+def add_database():
+    # Lade aktuelle Datenbanken
+    databases = load_database_configs()
+    
+    # Finde die nächste freie ID
+    used_ids = [int(db['id']) for db in databases]
+    next_id = 1
+    while next_id in used_ids:
+        next_id += 1
+    
+    # Lade aktuelle Konfiguration
+    config = load_backup_config()
+    
+    # Füge neue Datenbank hinzu
+    new_db = {
+        'id': str(next_id),
+        'name': f'Datenbank {next_id}',
+        'host': 'localhost',
+        'port': '3306',
+        'user': 'root',
+        'password': '',
+        'database': ''
+    }
+    databases.append(new_db)
+    
+    # Speichere Konfiguration
+    save_backup_config(config, databases)
+    
+    flash(f'Neue Datenbank hinzugefügt: Datenbank {next_id}', 'success')
+    return redirect(url_for('config'))
+
+# API-Route zum Löschen einer Datenbank
+@app.route('/delete_database/<db_id>', methods=['POST'])
+def delete_database(db_id):
+    # Lade aktuelle Datenbanken
+    databases = load_database_configs()
+    
+    # Finde die zu löschende Datenbank
+    db_to_delete = next((db for db in databases if db['id'] == db_id), None)
+    
+    if db_to_delete:
+        # Entferne die Datenbank aus der Liste
+        databases = [db for db in databases if db['id'] != db_id]
+        
+        # Wenn keine Datenbanken mehr übrig sind, füge eine Standard-Datenbank hinzu
+        if not databases:
+            databases.append({
+                'id': '1',
+                'name': 'Datenbank 1',
+                'host': 'localhost',
+                'port': '3306',
+                'user': 'root',
+                'password': '',
+                'database': ''
+            })
+        
+        # Lade aktuelle Konfiguration
+        config = load_backup_config()
+        
+        # Speichere Konfiguration
+        save_backup_config(config, databases)
+        
+        flash(f'Datenbank {db_to_delete["name"]} wurde gelöscht', 'success')
+    else:
+        flash(f'Datenbank mit ID {db_id} nicht gefunden', 'danger')
+    
+    return redirect(url_for('config'))
 
 # Stelle sicher, dass die Konfigurationsdateien existieren
 ensure_config_files()

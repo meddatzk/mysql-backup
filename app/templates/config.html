@@ -9,7 +9,7 @@
             <i class="bi bi-gear-fill"></i> Konfiguration
         </h1>
         <p class="lead">
-            Hier können Sie die MySQL-Verbindung und die Backup-Einstellungen konfigurieren.
+            Hier können Sie die MySQL-Verbindungen und die Backup-Einstellungen konfigurieren.
         </p>
     </div>
 </div>
@@ -24,58 +24,10 @@
                 <form method="post" action="{{ url_for('config') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                    <!-- Allgemeine Einstellungen -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h4 class="mb-3">MySQL-Verbindung</h4>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="mysql_host" class="form-label">MySQL-Host</label>
-                            <input type="text" class="form-control" id="mysql_host" name="mysql_host"
-                                value="{{ config.get('MYSQL_HOST', 'localhost') }}" required>
-                            <div class="form-text">Hostname oder IP-Adresse des MySQL-Servers</div>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="mysql_port" class="form-label">MySQL-Port</label>
-                            <input type="number" class="form-control" id="mysql_port" name="mysql_port"
-                                value="{{ config.get('MYSQL_PORT', '3306') }}" required>
-                            <div class="form-text">Port des MySQL-Servers (Standard: 3306)</div>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="mysql_user" class="form-label">MySQL-Benutzer</label>
-                            <input type="text" class="form-control" id="mysql_user" name="mysql_user"
-                                value="{{ config.get('MYSQL_USER', 'root') }}" required>
-                            <div class="form-text">Benutzername für die MySQL-Verbindung</div>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="mysql_password" class="form-label">MySQL-Passwort</label>
-                            <input type="password" class="form-control" id="mysql_password" name="mysql_password"
-                                value="{{ config.get('MYSQL_PASSWORD', '') }}">
-                            <div class="form-text">Passwort für die MySQL-Verbindung</div>
-                        </div>
-
-                        <div class="col-12 mb-3">
-                            <label for="mysql_database" class="form-label">MySQL-Datenbank</label>
-                            <input type="text" class="form-control" id="mysql_database" name="mysql_database"
-                                value="{{ config.get('MYSQL_DATABASE', '') }}" required>
-                            <div class="form-text">Name der zu sichernden Datenbank</div>
-                        </div>
-
-                        <div class="col-12 mb-3">
-                            <button type="button" class="btn btn-info" id="test_db_btn">
-                                <i class="bi bi-check-circle"></i> Datenbankverbindung testen
-                            </button>
-                            <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen Einstellungen
-                                (speichert nicht)</small>
-                        </div>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h4 class="mb-3">Backup-Einstellungen</h4>
+                            <h4 class="mb-3">Allgemeine Einstellungen</h4>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -93,6 +45,120 @@
                         </div>
                     </div>
 
+                    <!-- Datenbank-Konfigurationen -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="mb-3">Datenbank-Konfigurationen</h4>
+                            <p>
+                                Konfigurieren Sie hier die Verbindungsdaten für Ihre MySQL-Datenbanken.
+                                Jede Datenbank wird in eine separate Datei gesichert.
+                            </p>
+
+                            <!-- Datenbank-Tabs -->
+                            <ul class="nav nav-tabs" id="databaseTabs" role="tablist">
+                                {% for db in databases %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {% if loop.first %}active{% endif %}"
+                                        id="db-tab-{{ db.id }}" data-bs-toggle="tab"
+                                        data-bs-target="#db-content-{{ db.id }}" type="button" role="tab"
+                                        aria-controls="db-content-{{ db.id }}"
+                                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                                        {{ db.name }}
+                                    </button>
+                                </li>
+                                {% endfor %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="add-db-tab" type="button" onclick="addDatabase()">
+                                        <i class="bi bi-plus-circle"></i> Neue Datenbank
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Datenbank-Tab-Inhalte -->
+                            <div class="tab-content border border-top-0 rounded-bottom p-3" id="databaseTabsContent">
+                                {% for db in databases %}
+                                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                                    id="db-content-{{ db.id }}" role="tabpanel" aria-labelledby="db-tab-{{ db.id }}">
+
+                                    <input type="hidden" name="db_id" value="{{ db.id }}">
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="db_{{ db.id }}_name" class="form-label">Anzeigename</label>
+                                            <input type="text" class="form-control" id="db_{{ db.id }}_name"
+                                                name="db_{{ db.id }}_name" value="{{ db.name }}" required>
+                                            <div class="form-text">Name für die Anzeige in der Benutzeroberfläche</div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                                            {% if databases|length > 1 %}
+                                            <form action="{{ url_for('delete_database', db_id=db.id) }}" method="post"
+                                                class="ms-auto"
+                                                onsubmit="return confirm('Sind Sie sicher, dass Sie diese Datenbank-Konfiguration löschen möchten?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="bi bi-trash"></i> Datenbank löschen
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="db_{{ db.id }}_host" class="form-label">MySQL-Host</label>
+                                            <input type="text" class="form-control" id="db_{{ db.id }}_host"
+                                                name="db_{{ db.id }}_host" value="{{ db.host }}" required>
+                                            <div class="form-text">Hostname oder IP-Adresse des MySQL-Servers</div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="db_{{ db.id }}_port" class="form-label">MySQL-Port</label>
+                                            <input type="number" class="form-control" id="db_{{ db.id }}_port"
+                                                name="db_{{ db.id }}_port" value="{{ db.port }}" required>
+                                            <div class="form-text">Port des MySQL-Servers (Standard: 3306)</div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="db_{{ db.id }}_user" class="form-label">MySQL-Benutzer</label>
+                                            <input type="text" class="form-control" id="db_{{ db.id }}_user"
+                                                name="db_{{ db.id }}_user" value="{{ db.user }}" required>
+                                            <div class="form-text">Benutzername für die MySQL-Verbindung</div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="db_{{ db.id }}_password"
+                                                class="form-label">MySQL-Passwort</label>
+                                            <input type="password" class="form-control" id="db_{{ db.id }}_password"
+                                                name="db_{{ db.id }}_password" value="{{ db.password }}">
+                                            <div class="form-text">Passwort für die MySQL-Verbindung</div>
+                                        </div>
+
+                                        <div class="col-12 mb-3">
+                                            <label for="db_{{ db.id }}_database"
+                                                class="form-label">MySQL-Datenbank</label>
+                                            <input type="text" class="form-control" id="db_{{ db.id }}_database"
+                                                name="db_{{ db.id }}_database" value="{{ db.database }}" required>
+                                            <div class="form-text">Name der zu sichernden Datenbank</div>
+                                        </div>
+
+                                        <div class="col-12 mb-3">
+                                            <button type="button" class="btn btn-info test-db-btn"
+                                                data-db-id="{{ db.id }}">
+                                                <i class="bi bi-check-circle"></i> Datenbankverbindung testen
+                                            </button>
+                                            <small class="text-muted ms-2">Testet die Verbindung mit den aktuellen
+                                                Einstellungen
+                                                (speichert nicht)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SMB-Share-Einstellungen -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <h4 class="mb-3">SMB-Share-Einstellungen</h4>
@@ -158,6 +224,11 @@
                         </div>
                     </div>
                 </form>
+
+                <!-- Formular zum Hinzufügen einer neuen Datenbank -->
+                <form id="addDatabaseForm" action="{{ url_for('add_database') }}" method="post" class="d-none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
             </div>
         </div>
     </div>
@@ -171,7 +242,7 @@
         const smbEnabled = document.getElementById('smb_enabled');
         const smbFields = document.querySelectorAll('#smb_share, #smb_mount, #smb_user, #smb_password, #smb_domain');
         const testSmbBtn = document.getElementById('test_smb_btn');
-        const testDbBtn = document.getElementById('test_db_btn');
+        const testDbBtns = document.querySelectorAll('.test-db-btn');
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
         function toggleSmbFields() {
@@ -197,47 +268,51 @@
         smbEnabled.addEventListener('change', toggleSmbFields);
 
         // Datenbankverbindung testen
-        testDbBtn.addEventListener('click', function () {
-            // Daten sammeln
-            const data = {
-                mysql_host: document.getElementById('mysql_host').value,
-                mysql_port: document.getElementById('mysql_port').value,
-                mysql_user: document.getElementById('mysql_user').value,
-                mysql_password: document.getElementById('mysql_password').value,
-                mysql_database: document.getElementById('mysql_database').value,
-                csrf_token: csrfToken
-            };
+        testDbBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const dbId = this.getAttribute('data-db-id');
 
-            // Button-Status ändern
-            testDbBtn.disabled = true;
-            testDbBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Teste Verbindung...';
+                // Daten sammeln
+                const data = {
+                    mysql_host: document.getElementById(`db_${dbId}_host`).value,
+                    mysql_port: document.getElementById(`db_${dbId}_port`).value,
+                    mysql_user: document.getElementById(`db_${dbId}_user`).value,
+                    mysql_password: document.getElementById(`db_${dbId}_password`).value,
+                    mysql_database: document.getElementById(`db_${dbId}_database`).value,
+                    csrf_token: csrfToken
+                };
 
-            // AJAX-Anfrage senden
-            fetch('{{ url_for("test_db_connection") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify(data)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Ergebnis anzeigen
-                    if (data.success) {
-                        showAlert('success', data.message);
-                    } else {
-                        showAlert('danger', data.message);
-                    }
+                // Button-Status ändern
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Teste Verbindung...';
+
+                // AJAX-Anfrage senden
+                fetch('{{ url_for("test_db_connection") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
                 })
-                .catch(error => {
-                    showAlert('danger', 'Fehler bei der Anfrage: ' + error);
-                })
-                .finally(() => {
-                    // Button-Status zurücksetzen
-                    testDbBtn.disabled = false;
-                    testDbBtn.innerHTML = '<i class="bi bi-check-circle"></i> Datenbankverbindung testen';
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        // Ergebnis anzeigen
+                        if (data.success) {
+                            showAlert('success', data.message);
+                        } else {
+                            showAlert('danger', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        showAlert('danger', 'Fehler bei der Anfrage: ' + error);
+                    })
+                    .finally(() => {
+                        // Button-Status zurücksetzen
+                        this.disabled = false;
+                        this.innerHTML = '<i class="bi bi-check-circle"></i> Datenbankverbindung testen';
+                    });
+            });
         });
 
         // SMB-Verbindung testen
@@ -307,5 +382,10 @@
             }, 5000);
         }
     });
+
+    // Funktion zum Hinzufügen einer neuen Datenbank
+    function addDatabase() {
+        document.getElementById('addDatabaseForm').submit();
+    }
 </script>
 {% endblock %}
