@@ -99,14 +99,11 @@
 
                                         <div class="col-md-6 mb-3 d-flex align-items-end">
                                             {% if databases|length > 1 %}
-                                            <form action="{{ url_for('delete_database', db_id=db.id) }}" method="post"
-                                                class="ms-auto"
-                                                onsubmit="return confirm('Sind Sie sicher, dass Sie diese Datenbank-Konfiguration löschen möchten?');">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-danger">
-                                                    <i class="bi bi-trash"></i> Datenbank löschen
-                                                </button>
-                                            </form>
+                                            <!-- "Löschen"-Button, der nicht ein separates Formular verwendet -->
+                                            <button type="button" class="btn btn-danger ms-auto delete-db-btn"
+                                                data-db-id="{{ db.id }}" data-db-name="{{ db.name }}">
+                                                <i class="bi bi-trash"></i> Datenbank löschen
+                                            </button>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -232,8 +229,14 @@
                     </div>
                 </form>
 
+                <!-- Separate Formulare, die außerhalb des Hauptformulars platziert sind -->
                 <!-- Formular zum Hinzufügen einer neuen Datenbank -->
                 <form id="addDatabaseForm" action="{{ url_for('add_database') }}" method="post" class="d-none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+
+                <!-- Formular zum Löschen einer Datenbank -->
+                <form id="deleteDatabaseForm" action="" method="post" class="d-none">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 </form>
             </div>
@@ -244,8 +247,8 @@
 
 {% block scripts %}
 <script>
-    // Debugging-Funktion, die vor dem Absenden des Formulars prüft, ob DB-IDs vorhanden sind
-    function debugFormSubmit() {
+    // Manuelles Absenden des Hauptformulars mit allen DB-IDs
+    function submitMainForm() {
         console.log("Formular wird abgesendet, prüfe DB-IDs...");
         const dbIds = document.querySelectorAll('input[name="db_ids"]');
         console.log(`Gefundene DB-IDs im Formular: ${dbIds.length}`);
@@ -260,6 +263,33 @@
         for (let [key, value] of formData.entries()) {
             console.log(`${key}: ${value}`);
         }
+
+        // Stelle sicher, dass alle Datenbank-IDs im Formular enthalten sind
+        const mainForm = document.getElementById('configForm');
+
+        // Hole alle Tabs, um alle Datenbank-IDs zu extrahieren
+        const dbTabs = document.querySelectorAll('[id^="db-tab-"]');
+        let allDbIds = [];
+
+        dbTabs.forEach(tab => {
+            const dbId = tab.id.replace('db-tab-', '');
+            if (dbId) {
+                allDbIds.push(dbId);
+
+                // Prüfe, ob bereits ein verstecktes Feld für diese ID existiert
+                let idField = mainForm.querySelector(`input[name="db_ids"][value="${dbId}"]`);
+                if (!idField) {
+                    // Wenn nicht, erstelle ein neues Feld
+                    idField = document.createElement('input');
+                    idField.type = 'hidden';
+                    idField.name = 'db_ids';
+                    idField.value = dbId;
+                    mainForm.appendChild(idField);
+                }
+            }
+        });
+
+        console.log(`Alle Datenbank-IDs vor dem Absenden: ${allDbIds.join(', ')}`);
 
         return true; // Formular absenden zulassen
     }
@@ -342,8 +372,23 @@
             });
         });
 
+        // Register event handlers
+        const deleteButtons = document.querySelectorAll('.delete-db-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const dbId = this.getAttribute('data-db-id');
+                const dbName = this.getAttribute('data-db-name');
+
+                if (confirm(`Sind Sie sicher, dass Sie die Datenbank "${dbName}" löschen möchten?`)) {
+                    const form = document.getElementById('deleteDatabaseForm');
+                    form.action = "{{ url_for('delete_database', db_id='') }}" + dbId;
+                    form.submit();
+                }
+            });
+        });
+
         // Formular-Submit-Event abfangen
-        document.getElementById('configForm').addEventListener('submit', debugFormSubmit);
+        document.getElementById('configForm').addEventListener('submit', submitMainForm);
 
         // SMB-Verbindung testen
         testSmbBtn.addEventListener('click', function () {
