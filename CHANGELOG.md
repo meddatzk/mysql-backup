@@ -1,3 +1,26 @@
+# [1.1.0](https://github.com/meddatzk/mysql-backup/compare/v1.0.0...v1.1.0) (2025-04-26)
+
+
+### Bug Fixes
+
+* Aktualisiere die Verarbeitung von Datenbank-IDs in Formularen und füge versteckte Felder hinzu ([a0f00e3](https://github.com/meddatzk/mysql-backup/commit/a0f00e366f635bb9442927def24c9f2d73926ee5))
+* Ermögliche die Verarbeitung mehrerer Datenbank-IDs über ein verstecktes Feld ([65d2f01](https://github.com/meddatzk/mysql-backup/commit/65d2f01f66b69fd621576b0f4a23f9b6ccfb5b90))
+* Extrahiere Datenbank-IDs aus Formularfeldern und entferne das versteckte Feld ([adb127a](https://github.com/meddatzk/mysql-backup/commit/adb127a30943c52d17f2695cdcbf595557fcc1d9))
+* Korrigiere die Verarbeitung von Datenbank-IDs in Formularen ([09e6fc7](https://github.com/meddatzk/mysql-backup/commit/09e6fc7a7c17fea5d4faa0ceda188f00e31db67c))
+* Korrigiere die Verarbeitung von Datenbank-IDs in versteckten Feldern ([39e2270](https://github.com/meddatzk/mysql-backup/commit/39e227032b6bc5a99b16c2770ece7ab8699e194c))
+* Verhindere Validierungsfehler durch temporäres Entfernen von "required" in nicht-aktiven Tabs vor dem Formularabsenden ([0cd2b7e](https://github.com/meddatzk/mysql-backup/commit/0cd2b7e319412a3e1aeed62792701ed7eabedee1))
+
+
+### Features
+
+* Aktualisiere die Verarbeitung von Datenbank-IDs und verbessere das Formular-Handling ([435e47f](https://github.com/meddatzk/mysql-backup/commit/435e47f7d4447129ea36c21bc6a9ac1177172b5c))
+* Enhance MySQL Backup Functionality and Configuration ([d2e9927](https://github.com/meddatzk/mysql-backup/commit/d2e99275d305a654d01760df3641768224f0fc92))
+* Ersetze das Löschen von Datenbanken durch einen Button und füge ein verstecktes Formular hinzu ([a6a028d](https://github.com/meddatzk/mysql-backup/commit/a6a028dd3630475a2ebebfc9597b3d9b7357b4b9))
+* Füge Debugging-Ausgaben für Formularfelder hinzu und stelle sicher, dass alle Felder übermittelt werden ([6263db5](https://github.com/meddatzk/mysql-backup/commit/6263db50b2758d93a3db2376ce2f8d4e6f5edd6b))
+* Füge Debugging-Ausgaben hinzu, um alle Formularfelder zu protokollieren ([47f4ca8](https://github.com/meddatzk/mysql-backup/commit/47f4ca83b25a183bbb68cc9abf4366c9446c6ccd))
+* Füge Debugging-Logs hinzu, um die Übermittlung von DB-IDs und Formularfeldern zu überprüfen ([0bb5dc5](https://github.com/meddatzk/mysql-backup/commit/0bb5dc56164f6ede74faf01f80ad7445743854c2))
+* Verbessere die Verarbeitung von Datenbank-IDs und füge umfassende Logging-Informationen hinzu ([c54f433](https://github.com/meddatzk/mysql-backup/commit/c54f433ec0c0a45ba552dff86af53bd9a5c0c388))
+
 # 1.0.0 (2025-04-05)
 
 
