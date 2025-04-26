@@ -21,7 +21,7 @@
                 <i class="bi bi-sliders"></i> Backup-Einstellungen
             </div>
             <div class="card-body">
-                <form method="post" action="{{ url_for('config') }}" id="configForm">
+                <form method="post" action="{{ url_for('config') }}" id="configForm" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <!-- Allgemeine Einstellungen -->
@@ -54,13 +54,8 @@
                                 Jede Datenbank wird in eine separate Datei gesichert.
                             </p>
 
-                            <!-- Versteckte Felder für alle Datenbank-IDs -->
-                            {% for db in databases %}
-                            <input type="hidden" name="db_ids" value="{{ db.id }}">
-                            {% endfor %}
-
-                            <!-- Debug-Feld um sicherzustellen, dass IDs übermittelt werden -->
-                            <input type="hidden" id="debug_db_ids" name="debug_db_ids"
+                            <!-- Versteckte Felder für alle Datenbank-IDs in einem Feld -->
+                            <input type="hidden" name="all_db_ids"
                                 value="{{ databases|map(attribute='id')|join(',') }}">
 
                             <!-- Datenbank-Tabs -->

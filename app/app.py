@@ -278,9 +278,6 @@ def config():
     if request.method == 'POST':
         try:
             logger.info("POST-Anfrage zum Speichern der Konfiguration erhalten")
-            # Debug-Ausgabe aller Formularfelder
-            form_data = request.form.to_dict(flat=False)
-            logger.info(f"Alle Formularfelder: {list(form_data.keys())}")
             
             # Allgemeine Konfiguration
             config_data = {
@@ -294,28 +291,25 @@ def config():
                 'SMB_DOMAIN': request.form.get('smb_domain', 'WORKGROUP')
             }
             
-            # Alternative Quellen für Datenbank-IDs
-            db_ids_sources = [
-                # 1. Direkt aus den versteckten Feldern
-                request.form.getlist('db_ids'),
+            # Extrahiere die Datenbank-IDs aus dem einzelnen Feld
+            all_db_ids = request.form.get('all_db_ids', '')
+            logger.info(f"Erhaltene Datenbank-IDs: {all_db_ids}")
+            
+            # Teile die Komma-getrennte Liste
+            db_ids = [db_id.strip() for db_id in all_db_ids.split(',') if db_id.strip()]
+            
+            # Wenn keine IDs gefunden wurden, versuche sie aus den Namen-Feldern zu extrahieren
+            if not db_ids:
+                logger.warning("Keine Datenbank-IDs im all_db_ids Feld gefunden, versuche Extraktion aus Namen-Feldern")
+                form_data = request.form.to_dict(flat=False)
+                db_ids = [key.split('_')[1] for key in form_data.keys() 
+                         if key.startswith('db_') and '_name' in key]
                 
-                # 2. Aus dem Debug-Feld
-                request.form.get('debug_db_ids', '').split(',') if request.form.get('debug_db_ids') else [],
+            # Wenn immer noch keine IDs gefunden wurden, verwende Standardwert
+            if not db_ids:
+                db_ids = ['1']
                 
-                # 3. Aus den Namen-Feldern extrahieren
-                [key.split('_')[1] for key in form_data.keys() if key.startswith('db_') and '_name' in key]
-            ]
-            
-            # Verwende die erste Quelle mit Daten
-            db_ids = next((source for source in db_ids_sources if source), ['1'])
-            
-            # Entferne leere Einträge
-            db_ids = [db_id for db_id in db_ids if db_id]
-            
-            # Entferne Duplikate und sortiere
-            db_ids = sorted(set(db_ids))
-            
-            logger.info(f"Gefundene Datenbank-IDs: {db_ids}")
+            logger.info(f"Verwendete Datenbank-IDs: {db_ids}")
             
             # Sammel-Speicher für Datenbank-Konfigurationen
             databases = []
