@@ -32,7 +32,13 @@ csrf = CSRFProtect(app)
 # Lade Versionsinformation
 def load_version():
     try:
-        with open('/app/version.json', 'r') as f:
+        # Prüfe zunächst im Docker-Pfad
+        version_file = '/app/version.json'
+        if not os.path.exists(version_file):
+            # Wenn nicht gefunden, versuche relativen Pfad zum Projekt-Root
+            version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'version.json')
+        
+        with open(version_file, 'r') as f:
             version_data = json.load(f)
             return version_data.get('version', 'unbekannt')
     except Exception as e:
