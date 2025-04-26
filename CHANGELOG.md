@@ -1,3 +1,11 @@
+## [1.1.1](https://github.com/meddatzk/mysql-backup/compare/v1.1.0...v1.1.1) (2025-04-26)
+
+
+### Bug Fixes
+
+* behebe das Kopieren der version.json-Datei in das Docker-Image ([e5a2c5c](https://github.com/meddatzk/mysql-backup/commit/e5a2c5cb6cdad956c3f2f01bd83715046c4b4f9f))
+* verbessere die Versionserkennung durch Unterstützung relativer Pfade im Docker-Setup ([59e69e2](https://github.com/meddatzk/mysql-backup/commit/59e69e2ec72abf6f13c07888dfdd82812494a16a))
+
 # [1.1.0](https://github.com/meddatzk/mysql-backup/compare/v1.0.0...v1.1.0) (2025-04-26)
 
 
