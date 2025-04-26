@@ -297,7 +297,7 @@ def config():
         databases = []
         
         # Hole Datenbank-IDs aus den versteckten Feldern
-        db_ids = request.form.getlist('db_ids[]')
+        db_ids = request.form.getlist('db_ids')
         print(f"DEBUG - Datenbank-IDs aus versteckten Feldern: {db_ids}", flush=True)
         
         for db_id in db_ids:

@@ -56,7 +56,7 @@
 
                             <!-- Versteckte Felder für alle Datenbank-IDs -->
                             {% for db in databases %}
-                            <input type="hidden" name="db_ids[]" value="{{ db.id }}">
+                            <input type="hidden" name="db_ids" value="{{ db.id }}">
                             {% endfor %}
 
                             <!-- Datenbank-Tabs -->
