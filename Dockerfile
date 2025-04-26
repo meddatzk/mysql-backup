@@ -25,6 +25,7 @@ RUN chmod -R 755 /app
 COPY app/ /app/
 COPY config/ /app/config/
 COPY scripts/ /app/scripts/
+COPY version.json /app/
 
 # Installiere Python-Abhängigkeiten
 COPY requirements.txt /app/
