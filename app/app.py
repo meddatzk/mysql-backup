@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Copyright (c) 2025 Maik Bohrmann
+# https://github.com/meddatzk/mysql-backup
 
 import os
 import json

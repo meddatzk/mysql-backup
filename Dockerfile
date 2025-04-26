@@ -1,5 +1,8 @@
 FROM alpine:3.18
 
+LABEL maintainer="Maik Bohrmann"
+LABEL repository="https://github.com/meddatzk/mysql-backup"
+
 # Installiere benötigte Pakete
 RUN apk update && apk add --no-cache \
     python3 \

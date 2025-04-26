@@ -136,3 +136,7 @@ Wenn Sie Probleme haben, eine Verbindung zum MySQL-Server herzustellen:
 ## Lizenz
 
 Dieses Projekt steht unter der MIT-Lizenz.
+
+## Copyright
+
+&copy; 2025 Maik Bohrmann | [GitHub Repository](https://github.com/meddatzk/mysql-backup)

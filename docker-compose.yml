@@ -4,6 +4,9 @@ services:
   mysql-backup:
     build: .
     container_name: mysql-backup
+    labels:
+      - "author=Maik Bohrmann"
+      - "repository=https://github.com/meddatzk/mysql-backup"
     ports:
       - "${WEB_PORT:-8080}:80"
     volumes:

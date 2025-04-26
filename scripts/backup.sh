@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2025 Maik Bohrmann
+# https://github.com/meddatzk/mysql-backup
 
 # MySQL-Backup-Skript
 
