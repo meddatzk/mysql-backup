@@ -276,68 +276,80 @@ def index():
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     if request.method == 'POST':
-        # Debug-Ausgabe aller Formularfelder
-        print("DEBUG - Formularfelder:", flush=True)
-        for key, value in request.form.items():
-            print(f"  {key}: {value}", flush=True)
-        
-        # Allgemeine Konfiguration
-        config_data = {
-            'BACKUP_DIR': request.form.get('backup_dir', '/app/backups'),
-            'BACKUP_RETENTION': request.form.get('backup_retention', '7'),
-            'SMB_ENABLED': 'true' if request.form.get('smb_enabled') else 'false',
-            'SMB_SHARE': request.form.get('smb_share', ''),
-            'SMB_MOUNT': request.form.get('smb_mount', '/mnt/backup'),
-            'SMB_USER': request.form.get('smb_user', ''),
-            'SMB_PASSWORD': request.form.get('smb_password', ''),
-            'SMB_DOMAIN': request.form.get('smb_domain', 'WORKGROUP')
-        }
-        
-        # Datenbank-Konfigurationen
-        databases = []
-        
-        # Hole Datenbank-IDs aus den versteckten Feldern
-        db_ids = request.form.getlist('db_ids')
-        print(f"DEBUG - Datenbank-IDs aus versteckten Feldern: {db_ids}", flush=True)
-        
-        # Debug: Alle Formularfelder ausgeben
-        print("DEBUG - Alle Formularfelder:", flush=True)
-        for key, value in request.form.items():
-            print(f"  {key}: {value}", flush=True)
-        
-        for db_id in db_ids:
-            db_config = {
-                'id': db_id,
-                'name': request.form.get(f'db_{db_id}_name', f'Datenbank {db_id}'),
-                'host': request.form.get(f'db_{db_id}_host', 'localhost'),
-                'port': request.form.get(f'db_{db_id}_port', '3306'),
-                'user': request.form.get(f'db_{db_id}_user', 'root'),
-                'password': request.form.get(f'db_{db_id}_password', ''),
-                'database': request.form.get(f'db_{db_id}_database', '')
+        try:
+            logger.info("POST-Anfrage zum Speichern der Konfiguration erhalten")
+            # Debug-Ausgabe aller Formularfelder
+            logger.debug("Formularfelder:")
+            for key, value in request.form.items():
+                if 'password' not in key:  # Passwörter nicht im Log anzeigen
+                    logger.debug(f"  {key}: {value}")
+            
+            # Allgemeine Konfiguration
+            config_data = {
+                'BACKUP_DIR': request.form.get('backup_dir', '/app/backups'),
+                'BACKUP_RETENTION': request.form.get('backup_retention', '7'),
+                'SMB_ENABLED': 'true' if request.form.get('smb_enabled') else 'false',
+                'SMB_SHARE': request.form.get('smb_share', ''),
+                'SMB_MOUNT': request.form.get('smb_mount', '/mnt/backup'),
+                'SMB_USER': request.form.get('smb_user', ''),
+                'SMB_PASSWORD': request.form.get('smb_password', ''),
+                'SMB_DOMAIN': request.form.get('smb_domain', 'WORKGROUP')
             }
-            print(f"DEBUG - DB-Konfiguration für ID {db_id}: {db_config}", flush=True)
-            databases.append(db_config)
+            
+            # Datenbank-Konfigurationen
+            databases = []
+            
+            # Hole Datenbank-IDs aus den versteckten Feldern
+            db_ids = request.form.getlist('db_ids')
+            logger.info(f"Datenbank-IDs aus versteckten Feldern: {db_ids}")
+            
+            # Falls keine IDs gefunden wurden, versuche sie manuell zu extrahieren
+            if not db_ids:
+                logger.warning("Keine Datenbank-IDs in versteckten Feldern gefunden, versuche manuelle Extraktion")
+                for key in request.form:
+                    if key.startswith('db_') and '_name' in key:
+                        db_id = key.split('_')[1]
+                        if db_id not in db_ids:
+                            db_ids.append(db_id)
+                logger.info(f"Manuell extrahierte Datenbank-IDs: {db_ids}")
+            
+            for db_id in db_ids:
+                db_config = {
+                    'id': db_id,
+                    'name': request.form.get(f'db_{db_id}_name', f'Datenbank {db_id}'),
+                    'host': request.form.get(f'db_{db_id}_host', 'localhost'),
+                    'port': request.form.get(f'db_{db_id}_port', '3306'),
+                    'user': request.form.get(f'db_{db_id}_user', 'root'),
+                    'password': request.form.get(f'db_{db_id}_password', ''),
+                    'database': request.form.get(f'db_{db_id}_database', '')
+                }
+                logger.info(f"DB-Konfiguration für ID {db_id} wird gespeichert")
+                databases.append(db_config)
         
-        print(f"DEBUG - Anzahl der Datenbanken: {len(databases)}", flush=True)
-        
-        # Wenn keine Datenbanken übermittelt wurden, füge eine Standard-Datenbank hinzu
-        if not databases:
-            print("DEBUG - Keine Datenbanken gefunden, füge Standard-Datenbank hinzu", flush=True)
-            databases.append({
-                'id': '1',
-                'name': 'Datenbank 1',
-                'host': 'localhost',
-                'port': '3306',
-                'user': 'root',
-                'password': '',
-                'database': ''
-            })
-        
-        print("DEBUG - Speichere Konfiguration", flush=True)
-        save_backup_config(config_data, databases)
-        print("DEBUG - Konfiguration gespeichert", flush=True)
-        flash('Konfiguration gespeichert', 'success')
-        return redirect(url_for('config'))
+            logger.info(f"Anzahl der zu speichernden Datenbanken: {len(databases)}")
+            
+            # Wenn keine Datenbanken übermittelt wurden, füge eine Standard-Datenbank hinzu
+            if not databases:
+                logger.warning("Keine Datenbanken gefunden, füge Standard-Datenbank hinzu")
+                databases.append({
+                    'id': '1',
+                    'name': 'Datenbank 1',
+                    'host': 'localhost',
+                    'port': '3306',
+                    'user': 'root',
+                    'password': '',
+                    'database': ''
+                })
+            
+            logger.info("Speichere Konfiguration")
+            save_backup_config(config_data, databases)
+            logger.info("Konfiguration erfolgreich gespeichert")
+            flash('Konfiguration erfolgreich gespeichert', 'success')
+            return redirect(url_for('config'))
+        except Exception as e:
+            logger.error(f"Fehler beim Speichern der Konfiguration: {str(e)}")
+            flash(f'Fehler beim Speichern der Konfiguration: {str(e)}', 'danger')
+            return redirect(url_for('config'))
     
     # Lade aktuelle Konfiguration
     config_data = load_backup_config()
