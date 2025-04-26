@@ -291,7 +291,24 @@
 
         console.log(`Alle Datenbank-IDs vor dem Absenden: ${allDbIds.join(', ')}`);
 
-        return true; // Formular absenden zulassen
+        // Entferne "required" von versteckten Tabs, um Validierungsfehler zu vermeiden
+        const activeTabs = [];
+        document.querySelectorAll('.tab-pane.active').forEach(tab => {
+            activeTabs.push(tab.id);
+        });
+
+        // Alle required-Felder in nicht-aktiven Tabs temporär als nicht-required markieren
+        document.querySelectorAll('.tab-pane:not(.active) [required]').forEach(field => {
+            field.setAttribute('data-was-required', 'true');
+            field.removeAttribute('required');
+        });
+
+        // Nach kurzer Verzögerung das Formular absenden
+        setTimeout(() => {
+            mainForm.submit();
+        }, 100);
+
+        return false; // Verhindere standardmäßiges Absenden, da wir es manuell tun
     }
 
     // Zeige/verstecke SMB-Felder basierend auf Checkbox
