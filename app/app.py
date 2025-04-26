@@ -300,6 +300,11 @@ def config():
         db_ids = request.form.getlist('db_ids')
         print(f"DEBUG - Datenbank-IDs aus versteckten Feldern: {db_ids}", flush=True)
         
+        # Debug: Alle Formularfelder ausgeben
+        print("DEBUG - Alle Formularfelder:", flush=True)
+        for key, value in request.form.items():
+            print(f"  {key}: {value}", flush=True)
+        
         for db_id in db_ids:
             db_config = {
                 'id': db_id,
