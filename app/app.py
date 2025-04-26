@@ -279,10 +279,8 @@ def config():
         try:
             logger.info("POST-Anfrage zum Speichern der Konfiguration erhalten")
             # Debug-Ausgabe aller Formularfelder
-            logger.debug("Formularfelder:")
-            for key, value in request.form.items():
-                if 'password' not in key:  # Passwörter nicht im Log anzeigen
-                    logger.debug(f"  {key}: {value}")
+            form_data = request.form.to_dict(flat=False)
+            logger.info(f"Alle Formularfelder: {list(form_data.keys())}")
             
             # Allgemeine Konfiguration
             config_data = {
@@ -296,25 +294,36 @@ def config():
                 'SMB_DOMAIN': request.form.get('smb_domain', 'WORKGROUP')
             }
             
-            # Datenbank-Konfigurationen
+            # Alternative Quellen für Datenbank-IDs
+            db_ids_sources = [
+                # 1. Direkt aus den versteckten Feldern
+                request.form.getlist('db_ids'),
+                
+                # 2. Aus dem Debug-Feld
+                request.form.get('debug_db_ids', '').split(',') if request.form.get('debug_db_ids') else [],
+                
+                # 3. Aus den Namen-Feldern extrahieren
+                [key.split('_')[1] for key in form_data.keys() if key.startswith('db_') and '_name' in key]
+            ]
+            
+            # Verwende die erste Quelle mit Daten
+            db_ids = next((source for source in db_ids_sources if source), ['1'])
+            
+            # Entferne leere Einträge
+            db_ids = [db_id for db_id in db_ids if db_id]
+            
+            # Entferne Duplikate und sortiere
+            db_ids = sorted(set(db_ids))
+            
+            logger.info(f"Gefundene Datenbank-IDs: {db_ids}")
+            
+            # Sammel-Speicher für Datenbank-Konfigurationen
             databases = []
             
-            # Hole Datenbank-IDs aus den versteckten Feldern
-            db_ids = request.form.getlist('db_ids')
-            logger.info(f"Datenbank-IDs aus versteckten Feldern: {db_ids}")
-            
-            # Falls keine IDs gefunden wurden, versuche sie manuell zu extrahieren
-            if not db_ids:
-                logger.warning("Keine Datenbank-IDs in versteckten Feldern gefunden, versuche manuelle Extraktion")
-                for key in request.form:
-                    if key.startswith('db_') and '_name' in key:
-                        db_id = key.split('_')[1]
-                        if db_id not in db_ids:
-                            db_ids.append(db_id)
-                logger.info(f"Manuell extrahierte Datenbank-IDs: {db_ids}")
-            
+            # Verarbeite jede Datenbank
             for db_id in db_ids:
-                db_config = {
+                # Sammle alle Konfigurationswerte
+                db_fields = {
                     'id': db_id,
                     'name': request.form.get(f'db_{db_id}_name', f'Datenbank {db_id}'),
                     'host': request.form.get(f'db_{db_id}_host', 'localhost'),
@@ -323,14 +332,25 @@ def config():
                     'password': request.form.get(f'db_{db_id}_password', ''),
                     'database': request.form.get(f'db_{db_id}_database', '')
                 }
-                logger.info(f"DB-Konfiguration für ID {db_id} wird gespeichert")
-                databases.append(db_config)
-        
+                
+                # Prüfe ob die nötigen Felder vorhanden sind
+                required_fields_present = all(
+                    request.form.get(f'db_{db_id}_{field}') is not None 
+                    for field in ['name', 'host', 'port', 'user']
+                )
+                
+                # Wenn die nötigen Felder vorhanden sind, füge die Datenbank zur Konfiguration hinzu
+                if required_fields_present:
+                    logger.info(f"DB-Konfiguration für ID {db_id} erfolgreich extrahiert: {db_fields['name']}")
+                    databases.append(db_fields)
+                else:
+                    logger.warning(f"Unvollständige Datenbank-Konfiguration für ID {db_id}, überspringe")
+            
             logger.info(f"Anzahl der zu speichernden Datenbanken: {len(databases)}")
             
-            # Wenn keine Datenbanken übermittelt wurden, füge eine Standard-Datenbank hinzu
+            # Wenn keine Datenbanken gefunden wurden, erstelle eine Standard-Datenbank
             if not databases:
-                logger.warning("Keine Datenbanken gefunden, füge Standard-Datenbank hinzu")
+                logger.warning("Keine Datenbanken gefunden, erstelle Standard-Datenbank")
                 databases.append({
                     'id': '1',
                     'name': 'Datenbank 1',
@@ -341,13 +361,15 @@ def config():
                     'database': ''
                 })
             
-            logger.info("Speichere Konfiguration")
+            # Speichere die Konfiguration
+            logger.info("Speichere Konfiguration...")
             save_backup_config(config_data, databases)
-            logger.info("Konfiguration erfolgreich gespeichert")
+            logger.info("Konfiguration erfolgreich gespeichert!")
+            
             flash('Konfiguration erfolgreich gespeichert', 'success')
             return redirect(url_for('config'))
         except Exception as e:
-            logger.error(f"Fehler beim Speichern der Konfiguration: {str(e)}")
+            logger.error(f"Fehler beim Speichern der Konfiguration: {str(e)}", exc_info=True)
             flash(f'Fehler beim Speichern der Konfiguration: {str(e)}', 'danger')
             return redirect(url_for('config'))
     
