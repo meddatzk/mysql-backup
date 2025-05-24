@@ -94,7 +94,7 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ backup.date.strftime('%d.%m.%Y %H:%M:%S') }}</td>
-                                <td>{{ (backup.size / 1024) | round(2) }} MB</td>
+                                <td>{{ (backup.size / 1024 / 1024) | round(2) }} MB</td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <a href="{{ url_for('download_backup', filename=backup.filename) }}"
