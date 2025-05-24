@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/meddatzk/mysql-backup/compare/v1.1.2...v1.1.3) (2025-05-24)
+
+
+### Bug Fixes
+
+* korrigiere die Anzeige der Backup-Größe in MB ([5616472](https://github.com/meddatzk/mysql-backup/commit/5616472b5d309335e1ad711a699647af5c9b6b7a))
+
 ## [1.1.2](https://github.com/meddatzk/mysql-backup/compare/v1.1.1...v1.1.2) (2025-05-22)
 
 
